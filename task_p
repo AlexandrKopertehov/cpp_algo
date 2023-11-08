@@ -1,0 +1,95 @@
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+struct Vertex {
+  int64_t value;
+  int64_t promise;
+
+  Vertex() {
+    value = 0;
+    promise = 0;
+  }
+
+  Vertex(int64_t value, int64_t promise) : value(value), promise(promise) {
+  }
+};
+
+int64_t Left(int64_t i) {
+  return 2 * i + 1;
+}
+
+int64_t Right(int64_t i) {
+  return 2 * i + 2;
+}
+
+void Push(int64_t node, std::vector<Vertex>& st, const int64_t& n) {
+  st[node].value += st[node].promise * n;
+  if (node < (static_cast<int64_t>(st.size()) - 1) / 2) {
+    st[Left(node)].promise += st[node].promise;
+    st[Right(node)].promise += st[node].promise;
+  }
+  st[node].promise = 0;
+}
+
+int64_t Query(const int64_t& l, const int64_t& r, const int64_t& node, const int64_t& a, const int64_t& b,
+              std::vector<Vertex>& st) {
+  int64_t n = b - a + 1;
+  Push(node, st, n);
+  if (l <= a && b <= r) {
+    return st[node].value;
+  }
+  if (a > r || b < l) {
+    return 0;
+  }
+  int64_t left_res = Query(l, r, Left(node), a, (a + b) / 2, st);
+  int64_t right_res = Query(l, r, Right(node), (a + b) / 2 + 1, b, st);
+  return left_res + right_res;
+}
+
+void Update(const int64_t& l, const int64_t& r, const int64_t& node, const int64_t& a, const int64_t& b,
+            const int64_t& delta, std::vector<Vertex>& st) {
+  int64_t n = b - a + 1;
+  if (l <= a && b <= r) {
+    st[node].promise += delta;
+    Push(node, st, n);
+    return;
+  }
+  Push(node, st, n);
+  if (a > r || b < l) {
+    return;
+  }
+  Update(l, r, Left(node), a, (a + b) / 2, delta, st);
+  Update(l, r, Right(node), (a + b) / 2 + 1, b, delta, st);
+  st[node].value = st[Left(node)].value + st[Right(node)].value;
+}
+
+void ProcessingRequests(std::vector<Vertex>& st, const int64_t& n_st, int64_t q) {
+  for (int64_t i = 0; i < q; ++i) {
+    int64_t command = 0;
+    std::cin >> command;
+    int64_t l = 0;
+    int64_t r = 0;
+    std::cin >> l >> r;
+    ++l;
+    ++r;
+    --r;
+    if (command == 2) {
+      std::cout << Query(l, r, 0, 0, n_st - 1, st) << " ";
+    } else {
+      int64_t delta = 0;
+      std::cin >> delta;
+      Update(l, r, 0, 0, n_st - 1, delta, st);
+    }
+  }
+}
+
+int main() {
+  int64_t n = 0;
+  int64_t q = 0;
+  std::cin >> n >> q;
+  auto n_st = 1 << static_cast<int64_t>(std::ceil(std::log2(n - 1)));
+  std::vector<Vertex> st(2 * n_st - 1);
+  ProcessingRequests(st, n_st, q);
+  return 0;
+}
