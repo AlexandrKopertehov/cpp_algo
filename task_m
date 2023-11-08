@@ -1,0 +1,67 @@
+#include <iostream>
+#include <vector>
+
+uint32_t NextRand(uint32_t& cur, const uint32_t& a, const uint32_t& b) {
+  cur = cur * a + b;
+  return cur >> 8;
+}
+
+void ProcessingRequestsUpdate(std::vector<uint32_t>& delta_arr, const uint32_t& m, const uint32_t& a, const uint32_t& b,
+                              uint32_t& cur) {
+
+  for (uint32_t i = 0; i < m; ++i) {
+    uint32_t add = NextRand(cur, a, b);
+    uint32_t l = NextRand(cur, a, b);
+    uint32_t r = NextRand(cur, a, b);
+    if (l > r) {
+      std::swap(l, r);
+    }
+    delta_arr[l] += add;
+    delta_arr[r + 1] -= add;
+  }
+}
+
+void BuildPrefSum(const std::vector<uint32_t>& delta_arr, const uint32_t& n, std::vector<uint32_t>& pref_sum) {
+  pref_sum[0] = delta_arr[0];
+  uint32_t last = delta_arr[0];
+  for (uint32_t i = 1; i <= n; ++i) {
+    pref_sum[i] = pref_sum[i - 1] + delta_arr[i] + last;
+    last += delta_arr[i];
+  }
+}
+
+uint32_t ProcessingRequestsQuery(const std::vector<uint32_t>& pref_sum, const uint32_t& q, const uint32_t& a,
+                                 const uint32_t& b, uint32_t& cur) {
+  uint32_t all_sum = 0;
+
+  for (uint32_t i = 0; i < q; ++i) {
+    uint32_t l = NextRand(cur, a, b);
+    uint32_t r = NextRand(cur, a, b);
+    if (l > r) {
+      std::swap(l, r);
+    }
+    if (l == 0) {
+      all_sum += pref_sum[r];
+      continue;
+    }
+    all_sum += (pref_sum[r] - pref_sum[l - 1]);
+  }
+  return all_sum;
+}
+
+int main() {
+  uint32_t m = 0;
+  uint32_t q = 0;
+  uint32_t a = 0;
+  uint32_t b = 0;
+  std::cin >> m >> q;
+  std::cin >> a >> b;
+  uint32_t n = 1 << 24;
+  std::vector<uint32_t> delta_arr(n + 1, 0);
+  uint32_t cur = 0;
+  ProcessingRequestsUpdate(delta_arr, m, a, b, cur);
+  std::vector<uint32_t> pref_sum(n + 1);
+  BuildPrefSum(delta_arr, n, pref_sum);
+  std::cout << ProcessingRequestsQuery(pref_sum, q, a, b, cur) << "\n";
+  return 0;
+}
