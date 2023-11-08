@@ -1,0 +1,255 @@
+#include <iostream>
+
+class Treap {
+ private:
+  struct Node {
+    int64_t key;
+    int64_t priority;
+    int64_t size;
+    Node* left;
+    Node* right;
+    Node* parent;
+    int64_t result;
+
+    explicit Node(int64_t key)
+        : key(key), priority(std::rand()), size(1), left(nullptr), right(nullptr), parent(nullptr) {
+    }
+  };
+
+  Node* root_ = nullptr;
+
+  int64_t Size(Node* node) {
+    return node ? node->size : 0;
+  }
+
+  void FixNode(Node* node) {
+    if (node) {
+      node->size = 1 + Size(node->left) + Size(node->right);
+    }
+  }
+
+  Node* Merge(Node* t_1, Node* t_2) {
+    if (!t_1) {
+      return t_2;
+    }
+    if (!t_2) {
+      return t_1;
+    }
+    if (t_1->priority < t_2->priority) {
+      t_1->right = Merge(t_1->right, t_2);
+      t_1->right->parent = t_1;
+      FixNode(t_1);
+      return t_1;
+    }
+    t_2->left = Merge(t_1, t_2->left);
+    t_2->left->parent = t_2;
+    FixNode(t_2);
+    return t_2;
+  }
+
+  std::pair<Node*, Node*> Split(Node* t, const int64_t& key_0) {
+    if (!t) {
+      return std::make_pair(nullptr, nullptr);
+    }
+    if (t->key < key_0) {
+      auto lr = Split(t->right, key_0);
+      auto l = lr.first;
+      auto r = lr.second;
+      t->right = l;
+      if (l) {
+        l->parent = t;
+      }
+      if (r) {
+        r->parent = nullptr;
+      }
+      FixNode(t);
+      return std::make_pair(t, r);
+    }
+    auto lr = Split(t->left, key_0);
+    auto l = lr.first;
+    auto r = lr.second;
+    t->left = r;
+    if (r) {
+      r->parent = t;
+    }
+    if (l) {
+      l->parent = nullptr;
+    }
+    FixNode(t);
+    return std::make_pair(l, t);
+  }
+
+  Node* Find(Node* x, int64_t key) {
+    if (x == nullptr) {
+      return x;
+    }
+    if (x->key == key) {
+      return x;
+    }
+    if (x->key > key) {
+      return Find(x->left, key);
+    }
+    return Find(x->right, key);
+  }
+
+  void Next(Node* x, int64_t key, int64_t& next) {
+    if (x == nullptr) {
+      return;
+    }
+    if (key >= x->key) {
+      return Next(x->right, key, next);
+    }
+    if (key < x->key) {
+      next = x->key;
+      return Next(x->left, key, next);
+    }
+  }
+
+  void Prev(Node* x, int64_t key, int64_t& prev) {
+    if (x == nullptr) {
+      return;
+    }
+    if (key > x->key) {
+      prev = x->key;
+      return Prev(x->right, key, prev);
+    }
+    if (key <= x->key) {
+      return Prev(x->left, key, prev);
+    }
+  }
+
+  Node* Insert(Node* root, Node* node) {  // node->key not in treap
+    auto p = Split(root, node->key);
+    auto t_1 = p.first;
+    auto t_2 = p.second;
+    return Merge(Merge(t_1, node), t_2);
+  }
+
+  Node* Erase(Node* root, const int64_t& key) {
+    auto p_1 = Split(root, key);
+    auto t_less = p_1.first;
+    auto t_eq_more = p_1.second;
+    int64_t up = key;
+    Next(root_, key, up);
+    up = up == key ? key + 1 : up;
+    auto p_2 = Split(t_eq_more, up);
+    auto t_key = p_2.first;
+    auto t_more = p_2.second;
+    delete t_key;
+    return Merge(t_less, t_more);
+  }
+
+  int64_t CountLeft(Node* x) {
+    if (x->left) {
+      return x->left->size;
+    }
+    return 0;
+  }
+
+  Node* Kth(Node* x, int64_t k) {
+    if (x == nullptr) {
+      return x;
+    }
+    if (CountLeft(x) == k) {
+      return x;
+    }
+    if (CountLeft(x) > k) {
+      return Kth(x->left, k);
+    }
+    return Kth(x->right, k - CountLeft(x) - 1);
+  }
+
+  void ClearS(Node* x) {
+    if (x != nullptr) {
+      ClearS(x->left);
+      ClearS(x->right);
+      delete x;
+    }
+  }
+
+ public:
+  bool Exists(int64_t key) {
+    Node* x = Find(root_, key);
+    return x != nullptr && x->key == key;
+  }
+
+  void Insert(const int64_t& key) {
+    auto node = new Node(key);
+    if (!Exists(key)) {
+      root_ = Insert(root_, node);
+    }
+  }
+
+  void Erase(const int64_t& key) {
+    if (Exists(key)) {
+      root_ = Erase(root_, key);
+    }
+  }
+
+  int64_t GetNext(const int64_t& key) {
+    int64_t next = INT64_MIN;
+    Next(root_, key, next);
+    return next;
+  }
+
+  int64_t GetPrev(const int64_t& key) {
+    int64_t prev = INT64_MIN;
+    Prev(root_, key, prev);
+    return prev;
+  }
+
+  int64_t GetKth(const int64_t& idx) {
+    auto node = Kth(root_, idx);
+    if (node) {
+      return node->key;
+    }
+    return INT64_MIN;
+  }
+
+  void Clear() {
+    ClearS(root_);
+  }
+};
+
+void ProcessingRequests(Treap& treap) {
+  std::string command;
+  while ((std::cin >> command)) {
+    int64_t x = 0;
+    std::cin >> x;
+    if (command == "insert") {
+      treap.Insert(x);
+    } else if (command == "delete") {
+      treap.Erase(x);
+    } else if (command == "exists") {
+      std::cout << (treap.Exists(x) ? "true" : "false") << "\n";
+    } else if (command == "next") {
+      auto next = treap.GetNext(x);
+      if (next != INT64_MIN) {
+        std::cout << next << "\n";
+      } else {
+        std::cout << "none\n";
+      }
+    } else if (command == "prev") {
+      auto prev = treap.GetPrev(x);
+      if (prev != INT64_MIN) {
+        std::cout << prev << "\n";
+      } else {
+        std::cout << "none\n";
+      }
+    } else if (command == "kth") {
+      auto kth = treap.GetKth(x);
+      if (kth != INT64_MIN) {
+        std::cout << kth << "\n";
+      } else {
+        std::cout << "none\n";
+      }
+    }
+  }
+}
+
+int main() {
+  Treap treap;
+  ProcessingRequests(treap);
+  treap.Clear();
+  return 0;
+}
