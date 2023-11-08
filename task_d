@@ -1,0 +1,62 @@
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+int32_t GCD(int32_t a, int32_t b) {
+  if (b == 0) {
+    return a;
+  }
+  return GCD(b, a % b);
+}
+
+void InputData(std::vector<int32_t>& sculptures, const uint64_t& n) {
+  for (uint64_t i = 0; i < n; ++i) {
+    std::cin >> sculptures[i];
+  }
+}
+
+void BuildSparseTable(const uint64_t& n, const std::vector<int32_t>& smeshariki,
+                      std::vector<std::vector<int32_t>>& st) {
+  auto max_k = static_cast<uint64_t>(std::floor(std::log2(n)));
+
+  for (uint64_t i = 0; i < n; ++i) {
+    st[i].resize(max_k + 1);
+  }
+  for (uint64_t i = 0; i < n; ++i) {
+    st[i][0] = smeshariki[i];
+  }
+
+  for (uint64_t k = 1; k <= static_cast<uint64_t>(std::floor(std::log2(n))); ++k) {
+    for (uint64_t i = 0; i <= n - (1 << k); ++i) {
+      st[i][k] = GCD(st[i][k - 1], st[i + (1 << (k - 1))][k - 1]);
+    }
+  }
+}
+
+void ProcessingRequests(const std::vector<std::vector<int32_t>>& st, const uint64_t& q) {
+  for (uint64_t i = 0; i < q; ++i) {
+    uint64_t l = 0;
+    uint64_t r = 0;
+    std::cin >> l >> r;
+    --l;
+    --r;
+    auto k = static_cast<uint64_t>(std::floor(std::log2(r - l + 1)));
+    std::cout << GCD(st[l][k], st[r - (1 << k) + 1][k]) << "\n";
+  }
+}
+
+int main() {
+  std::ios_base::sync_with_stdio(false);
+  std::cin.tie(nullptr);
+  std::cout.tie(nullptr);
+  uint64_t n = 0;
+  std::cin >> n;
+  std::vector<int32_t> smeshariki(n);
+  InputData(smeshariki, n);
+  uint64_t q = 0;
+  std::cin >> q;
+  std::vector<std::vector<int32_t>> st(n);
+  BuildSparseTable(n, smeshariki, st);
+  ProcessingRequests(st, q);
+  return 0;
+}
