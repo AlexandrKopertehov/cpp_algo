@@ -1,0 +1,66 @@
+#include <iostream>
+#include <vector>
+
+void InputData(std::vector<int64_t>& sculptures, const int64_t& n) {
+  for (int64_t i = 0; i < n; ++i) {
+    std::cin >> sculptures[i];
+  }
+}
+
+void Update(const int64_t& k, const int64_t& n, const int64_t& delta, std::vector<int64_t>& ft) {
+  for (int64_t i = k; i < n; i = i | (i + 1)) {
+    ft[i] += delta;
+  }
+}
+
+int64_t Query(const int64_t& r, std::vector<int64_t>& ft) {
+  int64_t sum = 0;
+  for (int64_t i = r; i >= 0; i = (i & (i + 1)) - 1) {
+    sum += ft[i];
+  }
+  return sum;
+}
+
+void BuildFenwickTree(const std::vector<int64_t>& sculptures, const int64_t& n, std::vector<int64_t>& ft) {
+  for (int64_t i = 0; i < n; ++i) {
+    Update(i, n, sculptures[i], ft);
+  }
+}
+
+void ProcessingRequests(std::vector<int64_t>& ft, std::vector<int64_t>& sculptures, const int64_t& q,
+                        const int64_t& n) {
+  for (int64_t i = 0; i < q; ++i) {
+    char command = 0;
+    std::cin >> command;
+    if (command == 's') {
+      int64_t l = 0;
+      int64_t r = 0;
+      std::cin >> l >> r;
+      --l;
+      --r;
+      int64_t l_sum = l > 0 ? Query(--l, ft) : 0;
+      std::cout << Query(r, ft) - l_sum << "\n";
+    } else {
+      int64_t idx = 0;
+      int64_t v = 0;
+      std::cin >> idx >> v;
+      --idx;
+      int64_t delta = v - sculptures[idx];
+      sculptures[idx] = v;
+      Update(idx, n, delta, ft);
+    }
+  }
+}
+
+int main() {
+  int64_t n = 0;
+  int64_t q = 0;
+  std::cin >> n;
+  std::vector<int64_t> sculptures(n);
+  InputData(sculptures, n);
+  std::vector<int64_t> ft(n, 0);
+  BuildFenwickTree(sculptures, n, ft);
+  std::cin >> q;
+  ProcessingRequests(ft, sculptures, q, n);
+  return 0;
+}
