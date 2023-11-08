@@ -1,0 +1,116 @@
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+struct Vertex {
+  int64_t value;
+  int64_t promise;
+
+  Vertex() {
+    value = INT64_MIN;
+    promise = 0;
+  }
+
+  Vertex(int64_t value, int64_t promise) : value(value), promise(promise) {
+  }
+};
+
+void InputData(std::vector<int64_t>& beehives, const int64_t& n) {
+  for (int64_t i = 0; i < n; ++i) {
+    std::cin >> beehives[i];
+  }
+}
+
+int64_t Parent(int64_t i) {
+  return (i - 1) / 2;
+}
+
+int64_t Left(int64_t i) {
+  return 2 * i + 1;
+}
+
+int64_t Right(int64_t i) {
+  return 2 * i + 2;
+}
+
+void Push(int64_t node, std::vector<Vertex>& st) {
+  st[node].value += st[node].promise;
+  st[Left(node)].promise += st[node].promise;
+  st[Right(node)].promise += st[node].promise;
+  st[node].promise = 0;
+}
+
+int64_t Query(const int64_t& l, const int64_t& r, const int64_t& node, const int64_t& a, const int64_t& b,
+              std::vector<Vertex>& st) {
+  if (l <= a && b <= r) {
+    return st[node].value + st[node].promise;
+  }
+  if (a > r || b < l) {
+    return INT64_MIN;
+  }
+  Push(node, st);
+  int64_t left_res = Query(l, r, Left(node), a, (a + b) / 2, st);
+  int64_t right_res = Query(l, r, Right(node), (a + b) / 2 + 1, b, st);
+  return std::max(left_res, right_res);
+}
+
+void Update(const int64_t& l, const int64_t& r, const int64_t& node, const int64_t& a, const int64_t& b,
+            const int64_t& delta, std::vector<Vertex>& st) {
+  if (l <= a && b <= r) {
+    st[node].promise += delta;
+    return;
+  }
+  if (a > r || b < l) {
+    return;
+  }
+  Push(node, st);
+  Update(l, r, Left(node), a, (a + b) / 2, delta, st);
+  Update(l, r, Right(node), (a + b) / 2 + 1, b, delta, st);
+  st[node].value =
+      std::max(st[Left(node)].value + st[Left(node)].promise, st[Right(node)].value + st[Right(node)].promise);
+}
+
+void BuildSegmentTree(const std::vector<int64_t>& beehives, const int64_t& n, std::vector<Vertex>& st,
+                      const int64_t& n_st) {
+  for (int64_t i = 0; i < n; ++i) {
+    st[i + n_st - 1] = {beehives[i], 0};
+  }
+
+  for (int64_t i = n_st - 2; i >= 0; --i) {
+    st[i].value = std::max(st[Left(i)].value, st[Right(i)].value);
+    st[i].promise = 0;
+  }
+}
+
+void ProcessingRequests(std::vector<Vertex>& st, const int64_t& n_st, int64_t q) {
+  for (int64_t i = 0; i < q; ++i) {
+    char command = 0;
+    std::cin >> command;
+    int64_t l = 0;
+    int64_t r = 0;
+    std::cin >> l >> r;
+    --l;
+    --r;
+    if (command == 'm') {
+      std::cout << Query(l, r, 0, 0, n_st - 1, st) << " ";
+    } else {
+      int64_t delta = 0;
+      std::cin >> delta;
+      Update(l, r, 0, 0, n_st - 1, delta, st);
+    }
+  }
+}
+
+int main() {
+  int64_t n = 0;
+  int64_t q = 0;
+  std::cin >> n;
+  std::vector<int64_t> beehives(n);
+  InputData(beehives, n);
+  auto n_st = 1 << static_cast<int64_t>(std::ceil(std::log2(n)));
+  std::vector<Vertex> st(2 * n_st - 1);
+  BuildSegmentTree(beehives, n, st, n_st);
+  std::cin >> q;
+  ProcessingRequests(st, n_st, q);
+  return 0;
+}
