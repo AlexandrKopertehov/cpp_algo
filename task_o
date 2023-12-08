@@ -1,0 +1,92 @@
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+struct Vertex {
+  char value;
+  int64_t free_left_bracket_cnt;
+  int64_t free_right_bracket_cnt;
+  int64_t result;
+
+  Vertex() : value('|'), free_left_bracket_cnt(0), free_right_bracket_cnt(0), result(0) {
+  }
+
+  explicit Vertex(char value)
+      : value(value)
+      , free_left_bracket_cnt(value == '(' ? 1 : 0)
+      , free_right_bracket_cnt(value == ')' ? 1 : 0)
+      , result(0) {
+  }
+
+  Vertex(char value, int64_t free_left_bracket_cnt, int64_t free_right_bracket_cnt, int64_t result)
+      : value(value)
+      , free_left_bracket_cnt(free_left_bracket_cnt)
+      , free_right_bracket_cnt(free_right_bracket_cnt)
+      , result(result) {
+  }
+};
+
+Vertex operator+(const Vertex& lhs, const Vertex& rhs) {
+  int64_t add = std::min(lhs.free_left_bracket_cnt, rhs.free_right_bracket_cnt);
+  int64_t result = lhs.result + 2 * add + rhs.result;
+
+  return {'|', lhs.free_left_bracket_cnt + rhs.free_left_bracket_cnt - add,
+          lhs.free_right_bracket_cnt + rhs.free_right_bracket_cnt - add, result};
+}
+
+int64_t Left(int64_t i) {
+  return 2 * i + 1;
+}
+
+int64_t Right(int64_t i) {
+  return 2 * i + 2;
+}
+
+Vertex Query(const int64_t& l, const int64_t& r, const int64_t& node, const int64_t& a, const int64_t& b,
+             std::vector<Vertex>& st) {
+  if (l <= a && b <= r) {
+    return st[node];
+  }
+  if (a > r || b < l) {
+    return {};
+  }
+  Vertex left_res = Query(l, r, Left(node), a, (a + b) / 2, st);
+  Vertex right_res = Query(l, r, Right(node), (a + b) / 2 + 1, b, st);
+  return left_res + right_res;
+}
+
+void BuildSegmentTree(const std::string& beehives, const int64_t& n, std::vector<Vertex>& st, const int64_t& n_st) {
+  for (int64_t i = 0; i < n; ++i) {
+    st[i + n_st - 1] = Vertex(beehives[i]);
+  }
+
+  for (int64_t i = n_st - 2; i >= 0; --i) {
+    st[i] = st[Left(i)] + st[Right(i)];
+  }
+}
+
+void ProcessingRequests(std::vector<Vertex>& st, const int64_t& n_st, int64_t q) {
+  for (int64_t i = 0; i < q; ++i) {
+    int64_t l = 0;
+    int64_t r = 0;
+    std::cin >> l >> r;
+    --l;
+    --r;
+    std::cout << Query(l, r, 0, 0, n_st - 1, st).result << "\n";
+  }
+}
+
+int main() {
+  std::ios_base::sync_with_stdio(false);
+  std::cin.tie(nullptr);
+  std::cout.tie(nullptr);
+  int64_t q = 0;
+  std::string psp_string;
+  std::cin >> psp_string;
+  std::cin >> q;
+  auto n_st = 1 << static_cast<int64_t>(std::ceil(std::log2(psp_string.size())));
+  std::vector<Vertex> st(2 * n_st - 1);
+  BuildSegmentTree(psp_string, static_cast<int64_t>(psp_string.size()), st, n_st);
+  ProcessingRequests(st, n_st, q);
+  return 0;
+}
