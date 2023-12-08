@@ -1,0 +1,108 @@
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+struct Smesharik {
+  int64_t value;
+  int64_t value_cnt;
+
+  Smesharik() {
+    value = INT64_MIN;
+    value_cnt = 1;
+  }
+
+  Smesharik(int64_t value, int64_t value_cnt) : value(value), value_cnt(value_cnt) {
+  }
+
+  Smesharik& operator+=(const Smesharik& rhs) {
+    if (value == rhs.value) {
+      value_cnt += rhs.value_cnt;
+    } else if (value < rhs.value) {
+      value = rhs.value;
+      value_cnt = rhs.value_cnt;
+    }
+    return *this;
+  }
+};
+
+Smesharik operator+(const Smesharik& lhs, const Smesharik& rhs) {
+  Smesharik tmp = lhs;
+  tmp += rhs;
+  return tmp;
+}
+
+void InputData(std::vector<int64_t>& smeshariks, const int64_t& n) {
+  for (int64_t i = 0; i < n; ++i) {
+    std::cin >> smeshariks[i];
+  }
+}
+
+int64_t Parent(int64_t i) {
+  return (i - 1) / 2;
+}
+
+int64_t Left(int64_t i) {
+  return 2 * i + 1;
+}
+
+int64_t Right(int64_t i) {
+  return 2 * i + 2;
+}
+
+void BuildSegmentTree(const std::vector<int64_t>& smeshariks, const int64_t& n, std::vector<Smesharik>& st,
+                      const int64_t& n_st) {
+  for (int64_t i = 0; i < n; ++i) {
+    st[i + n_st - 1] = {smeshariks[i], 1};
+  }
+
+  for (int64_t i = n_st - 2; i >= 0; --i) {
+    st[i] = st[Left(i)] + st[Right(i)];
+  }
+}
+
+Smesharik Query(int64_t l, int64_t r, const std::vector<Smesharik>& st, const int64_t& n_st) {
+  l += n_st - 1;
+  r += n_st - 1;
+  auto left_res = Smesharik();
+  auto right_res = Smesharik();
+  while (l < r) {
+    if (l == Right(Parent(l))) {
+      left_res += st[l];
+    }
+    l = Parent(l + 1);
+    if (r == Left(Parent(r))) {
+      right_res += st[r];
+    }
+    r = Parent(r - 1);
+  }
+  if (l == r) {
+    left_res += st[l];
+  }
+  return (left_res + right_res);
+}
+
+void ProcessingRequests(const std::vector<Smesharik>& st, const int64_t& n_st, int64_t q) {
+  for (int64_t i = 0; i < q; ++i) {
+    int64_t l = 0;
+    int64_t r = 0;
+    std::cin >> l >> r;
+    --l;
+    --r;
+    auto query_res = Query(l, r, st, n_st);
+    std::cout << query_res.value << " " << query_res.value_cnt << "\n";
+  }
+}
+
+int main() {
+  int64_t n = 0;
+  int64_t q = 0;
+  std::cin >> n;
+  std::vector<int64_t> smeshariks(n);
+  InputData(smeshariks, n);
+  auto n_st = 1 << static_cast<int64_t>(std::ceil(std::log2(n)));
+  std::vector<Smesharik> st(2 * n_st - 1);
+  BuildSegmentTree(smeshariks, n, st, n_st);
+  std::cin >> q;
+  ProcessingRequests(st, n_st, q);
+  return 0;
+}
