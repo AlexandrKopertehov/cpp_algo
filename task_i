@@ -1,0 +1,80 @@
+#include <iostream>
+#include <vector>
+
+void InputData(const uint64_t& n, std::vector<std::pair<int64_t, int64_t>>& nodes) {
+  for (uint64_t i = 0; i < n; ++i) {
+    int64_t a = 0;
+    int64_t b = 0;
+    std::cin >> a >> b;
+    nodes[i] = {i, b};
+  }
+}
+
+struct Node {
+  int64_t value;
+  int64_t priority;
+  Node* left;
+  Node* right;
+  Node* parent;
+
+  Node(int64_t value, int64_t priority)
+      : value(value), priority(priority), left(nullptr), right(nullptr), parent(nullptr) {
+  }
+};
+
+Node* Build(const uint64_t& n, const std::vector<std::pair<int64_t, int64_t>>& nodes) {
+  Node* root = nullptr;
+  Node* last = nullptr;
+  for (uint64_t i = 0; i < n; ++i) {
+    int64_t value = nodes[i].first;
+    int64_t priority = nodes[i].second;
+    auto node = new Node(value, priority);
+    Node* curr = last;
+    while (curr && priority < curr->priority) {
+      curr = curr->parent;
+    }
+    if (curr == nullptr) {
+      node->left = root;
+      if (root) {
+        root->parent = node;
+      }
+      root = node;
+    } else {
+      node->left = curr->right;
+      if (curr->right) {
+        curr->right->parent = node;
+      }
+      curr->right = node;
+      node->parent = curr;
+    }
+    last = node;
+  }
+  return root;
+}
+
+int64_t GetValue(Node* node) {
+  if (node) {
+    return node->value + 1;
+  }
+  return 0;
+}
+
+void PrintInOrder(Node* root) {
+  if (root) {
+    PrintInOrder(root->left);
+
+    std::cout << GetValue(root->parent) << " " << GetValue(root->left) << " " << GetValue(root->right) << "\n";
+
+    PrintInOrder(root->right);
+  }
+}
+
+int main() {
+  uint64_t n = 0;
+  std::cin >> n;
+  std::vector<std::pair<int64_t, int64_t>> nodes(n);
+  InputData(n, nodes);
+  std::cout << "YES\n";
+  PrintInOrder(Build(n, nodes));
+  return 0;
+}
