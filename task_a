@@ -1,0 +1,37 @@
+#include <iostream>
+#include <vector>
+
+void InputData(std::vector<int64_t>& sculptures, const uint64_t& n) {
+  for (uint64_t i = 1; i < n; ++i) {
+    std::cin >> sculptures[i];
+  }
+}
+
+void BuildPrefSum(const std::vector<int64_t>& sculptures, const uint64_t& n, std::vector<int64_t>& pref_sum) {
+  pref_sum[1] = sculptures[1];
+  for (uint64_t i = 2; i < n; ++i) {
+    pref_sum[i] = pref_sum[i - 1] + sculptures[i];
+  }
+}
+
+void ProcessingRequests(const std::vector<int64_t>& pref_sum, const uint64_t& k) {
+  for (uint64_t i = 0; i < k; ++i) {
+    uint64_t l = 0;
+    uint64_t r = 0;
+    std::cin >> l >> r;
+    std::cout << (pref_sum[r] - pref_sum[l - 1]) << " ";
+  }
+}
+
+int main() {
+  uint64_t n = 0;
+  uint64_t k = 0;
+  std::cin >> n;
+  std::vector<int64_t> sculptures(n + 1);
+  InputData(sculptures, n + 1);
+  std::vector<int64_t> pref_sum(n + 1);
+  BuildPrefSum(sculptures, n + 1, pref_sum);
+  std::cin >> k;
+  ProcessingRequests(pref_sum, k);
+  return 0;
+}
