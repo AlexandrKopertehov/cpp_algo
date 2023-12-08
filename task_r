@@ -1,0 +1,142 @@
+#include <iostream>
+#include <set>
+
+class Treap {
+ private:
+  struct Node {
+    int64_t key;
+    int64_t value;
+    int64_t priority;
+    int64_t size;
+    Node* left;
+    Node* right;
+    Node* parent;
+    int64_t result;
+
+    explicit Node(int64_t value)
+        : value(value), priority(std::rand()), size(1), left(nullptr), right(nullptr), parent(nullptr), result(value) {
+    }
+  };
+
+  Node* root_ = nullptr;
+
+  int64_t Size(Node* node) {
+    return node ? node->size : 0;
+  }
+
+  int64_t Result(Node* node) {
+    return node ? node->result : INT64_MAX;
+  }
+
+  void FixNode(Node* node) {
+    if (node) {
+      node->size = 1 + Size(node->left) + Size(node->right);
+      node->result = std::min(std::min(Result(node->left), node->value), Result(node->right));
+    }
+  }
+
+  Node* Merge(Node* t_1, Node* t_2) {
+    if (!t_1) {
+      return t_2;
+    }
+    if (!t_2) {
+      return t_1;
+    }
+    if (t_1->priority < t_2->priority) {
+      t_1->right = Merge(t_1->right, t_2);
+      t_1->right->parent = t_1;
+      FixNode(t_1);
+      return t_1;
+    }
+    t_2->left = Merge(t_1, t_2->left);
+    t_2->left->parent = t_2;
+    FixNode(t_2);
+    return t_2;
+  }
+
+  std::pair<Node*, Node*> Split(Node* t, const int64_t& k) {
+    if (!t) {
+      return std::make_pair(nullptr, nullptr);
+    }
+    if (Size(t->left) < k) {
+      auto lr = Split(t->right, k - Size(t->left) - 1);
+      auto l = lr.first;
+      auto r = lr.second;
+      t->right = l;
+      if (l) {
+        l->parent = t;
+      }
+      if (r) {
+        r->parent = nullptr;
+      }
+      FixNode(t);
+      return std::make_pair(t, r);
+    }
+    auto lr = Split(t->left, k);
+    auto l = lr.first;
+    auto r = lr.second;
+    t->left = r;
+    if (r) {
+      r->parent = t;
+    }
+    if (l) {
+      l->parent = nullptr;
+    }
+    FixNode(t);
+    return std::make_pair(l, t);
+  }
+
+  void ClearS(Node* x) {
+    if (x != nullptr) {
+      ClearS(x->left);
+      ClearS(x->right);
+      delete x;
+    }
+  }
+
+ public:
+  void Insert(const int64_t& k, const int64_t& value) {
+    auto node = new Node(value);
+    auto [t_1, t_2] = Split(root_, k);
+    root_ = Merge(t_1, Merge(node, t_2));
+  }
+
+  int64_t Query(const int64_t& l, const int64_t& r) {
+    auto p_1 = Split(root_, l - 1);
+    auto p_2 = Split(p_1.second, r - l + 1);
+    auto result = Result(p_2.first);
+    root_ = Merge(p_1.first, Merge(p_2.first, p_2.second));
+    return result;
+  }
+
+  void Clear() {
+    ClearS(root_);
+  }
+};
+
+void ProcessingRequests(const int64_t& n, Treap& treap) {
+  for (int64_t i = 0; i < n; ++i) {
+    char command = 0;
+    std::cin >> command;
+    if (command == '?') {
+      int64_t l = 0;
+      int64_t r = 0;
+      std::cin >> l >> r;
+      std::cout << treap.Query(l, r) << "\n";
+    } else {
+      int64_t idx = 0;
+      int64_t x = 0;
+      std::cin >> idx >> x;
+      treap.Insert(idx, x);
+    }
+  }
+}
+
+int main() {
+  int64_t n = 0;
+  std::cin >> n;
+  Treap treap;
+  ProcessingRequests(n, treap);
+  treap.Clear();
+  return 0;
+}
